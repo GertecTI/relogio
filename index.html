@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hora Sincronizada - NTP Brasil</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Arial', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        body {
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .time-display {
+            font-size: 680px;
+            font-weight: bold;
+            letter-spacing: 10px;
+            text-align: center;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .date-display {
+            font-size: 36px;
+            text-align: center;
+            letter-spacing: 2px;
+            color: #cccccc;
+        }
+
+        .status {
+            font-size: 14px;
+            text-align: center;
+            color: #666666;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #ff6666;
+        }
+
+        .success {
+            color: #66ff66;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-display" id="timeDisplay">--:--:--</div>
+    <div class="date-display" id="dateDisplay">-- de --- de ----</div>
+    <div class="status" id="status">Sincronizando...</div>
+
+    <script>
+        const timeDisplay = document.getElementById('timeDisplay');
+        const dateDisplay = document.getElementById('dateDisplay');
+        const statusDisplay = document.getElementById('status');
+
+        let timeDifference = 0;
+        let isSynchronized = false;
+
+        const monthNames = [
+            'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+            'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+        ];
+
+        async function synchronizeTime() {
+            try {
+                // Usar WorldTimeAPI para obter a hora sincronizada do Brasil (America/Sao_Paulo)
+                const response = await fetch('https://worldtimeapi.org/api/timezone/America/Sao_Paulo');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Extrair o timestamp Unix do servidor
+                const serverTime = data.unixtime * 1000; // Converter para milissegundos
+                const localTime = Date.now();
+                
+                // Calcular a diferença entre o tempo do servidor e o tempo local
+                timeDifference = serverTime - localTime;
+                isSynchronized = true;
+
+                statusDisplay.textContent = '';
+                statusDisplay.className = 'success';
+                
+                console.log('Sincronização bem-sucedida. Diferença de tempo:', timeDifference, 'ms');
+            } catch (error) {
+                console.error('Erro ao sincronizar:', error);
+                statusDisplay.textContent = '';
+                statusDisplay.className = 'error';
+                isSynchronized = false;
+                timeDifference = 0;
+            }
+        }
+
+        function updateDisplay() {
+            // Obter o tempo atual (ajustado com a diferença do servidor)
+            const now = new Date(Date.now() + timeDifference);
+
+            // Formatar a hora
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            
+            timeDisplay.textContent = `${hours}:${minutes}`;
+
+            // Formatar a data
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = monthNames[now.getMonth()];
+            const year = now.getFullYear();
+            
+            dateDisplay.textContent = `${day} de ${month} de ${year}`;
+        }
+
+        // Sincronizar a hora ao carregar a página
+        synchronizeTime();
+
+        // Atualizar a exibição a cada 100ms para suavidade
+        setInterval(updateDisplay, 100);
+
+        // Sincronizar novamente a cada 5 minutos para corrigir desvios
+        setInterval(synchronizeTime, 5 * 60 * 1000);
+
+        // Atualizar imediatamente após a sincronização
+        updateDisplay();
+
+        // Entrar em tela cheia ao clicar
+        document.addEventListener('click', () => {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                elem.mozRequestFullScreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+        });
+
+        // Sair da tela cheia ao pressionar ESC
+        document.addEventListener('fullscreenchange', () => {
+            console.log('Modo tela cheia:', document.fullscreenElement ? 'ativado' : 'desativado');
+        });
+    </script>
+</body>
+</html>
