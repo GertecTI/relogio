@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hora Sincronizada - NTP Brasil</title>
+
+    <!-- Manifesto PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+
     <style>
         * {
             margin: 0;
@@ -29,7 +34,7 @@
         }
 
         .time-display {
-            font-size: 680px;
+            font-size: 580px;
             font-weight: bold;
             letter-spacing: 10px;
             text-align: center;
@@ -61,7 +66,7 @@
     </style>
 </head>
 <body>
-    <div class="time-display" id="timeDisplay">--:--:--</div>
+    <div class="time-display" id="timeDisplay">--:--</div>
     <div class="date-display" id="dateDisplay">-- de --- de ----</div>
     <div class="status" id="status">Sincronizando...</div>
 
@@ -71,7 +76,6 @@
         const statusDisplay = document.getElementById('status');
 
         let timeDifference = 0;
-        let isSynchronized = false;
 
         const monthNames = [
             'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -80,85 +84,41 @@
 
         async function synchronizeTime() {
             try {
-                // Usar WorldTimeAPI para obter a hora sincronizada do Brasil (America/Sao_Paulo)
                 const response = await fetch('https://worldtimeapi.org/api/timezone/America/Sao_Paulo');
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                 const data = await response.json();
-                
-                // Extrair o timestamp Unix do servidor
-                const serverTime = data.unixtime * 1000; // Converter para milissegundos
+
+                const serverTime = data.unixtime * 1000;
                 const localTime = Date.now();
-                
-                // Calcular a diferença entre o tempo do servidor e o tempo local
                 timeDifference = serverTime - localTime;
-                isSynchronized = true;
 
                 statusDisplay.textContent = '';
                 statusDisplay.className = 'success';
-                
-                console.log('Sincronização bem-sucedida. Diferença de tempo:', timeDifference, 'ms');
+                console.log('Sincronização bem-sucedida:', timeDifference, 'ms');
             } catch (error) {
                 console.error('Erro ao sincronizar:', error);
                 statusDisplay.textContent = '';
                 statusDisplay.className = 'error';
-                isSynchronized = false;
                 timeDifference = 0;
             }
         }
 
         function updateDisplay() {
-            // Obter o tempo atual (ajustado com a diferença do servidor)
             const now = new Date(Date.now() + timeDifference);
-
-            // Formatar a hora
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            
-            
-            timeDisplay.textContent = `${hours}:${minutes}`;
-
-            // Formatar a data
             const day = String(now.getDate()).padStart(2, '0');
             const month = monthNames[now.getMonth()];
             const year = now.getFullYear();
-            
+
+            timeDisplay.textContent = `${hours}:${minutes}`;
             dateDisplay.textContent = `${day} de ${month} de ${year}`;
         }
 
-        // Sincronizar a hora ao carregar a página
         synchronizeTime();
-
-        // Atualizar a exibição a cada 100ms para suavidade
         setInterval(updateDisplay, 100);
-
-        // Sincronizar novamente a cada 5 minutos para corrigir desvios
         setInterval(synchronizeTime, 5 * 60 * 1000);
-
-        // Atualizar imediatamente após a sincronização
         updateDisplay();
-
-        // Entrar em tela cheia ao clicar
-        document.addEventListener('click', () => {
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                elem.webkitRequestFullscreen();
-            } else if (elem.mozRequestFullScreen) {
-                elem.mozRequestFullScreen();
-            } else if (elem.msRequestFullscreen) {
-                elem.msRequestFullscreen();
-            }
-        });
-
-        // Sair da tela cheia ao pressionar ESC
-        document.addEventListener('fullscreenchange', () => {
-            console.log('Modo tela cheia:', document.fullscreenElement ? 'ativado' : 'desativado');
-        });
     </script>
 </body>
 </html>
